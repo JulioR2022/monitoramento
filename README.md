@@ -26,7 +26,7 @@ Como o projeto utiliza Docker, você não precisa instalar o Python, Node.js ou 
 
 1. **Clone o repositório** para a sua máquina local:
    ```bash
-   git clone https://github.com/seu-usuario/monitoramento.git
+   git clone https://github.com/JulioR2022/monitoramento.git
    cd monitoramento
    ```
 
@@ -34,11 +34,12 @@ Como o projeto utiliza Docker, você não precisa instalar o Python, Node.js ou 
    ```bash
    docker-compose up --build
    ```
-   *(Nota: A primeira execução pode levar alguns minutos, pois o Docker irá baixar as imagens do MySQL, instalar as dependências do Python/React e realizar o download automático dos pesos do modelo YOLOv8).*
-
 3. **Acesse a aplicação:**
    - **Frontend (Interface Web):** Abra o seu navegador e acesse [http://localhost:5173](http://localhost:5173)
    - **Backend (Swagger UI):** Acesse a documentação interativa da API em [http://localhost:8000/docs](http://localhost:8000/docs)
+
+## Infraestrutura e Docker
+Este projeto foi otimizado utilizando os conceitos de Base Image e Layer Caching do Docker. Bibliotecas pesadas,como YOLOv8 e OpenCV, e dependências de processamento de imagem foram isoladas em uma imagem base pública (juliorsilva/monitoramento-base) hospedada no Docker Hub. Isso permite que a inicialização local do projeto ou a pipeline de deploy na nuvem ocorram em segundos, eliminando os gargalos de compilação e o longo tempo de download dos pesos do modelo de IA que ocorreriam em uma configuração tradicional.
 
 ###  Parando a aplicação
 
@@ -46,3 +47,4 @@ Para parar e remover os contêineres, basta pressionar `CTRL+C` no terminal onde
 ```bash
 docker-compose down
 ```
+
