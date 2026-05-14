@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from model_loader import detect_objects
@@ -22,8 +22,8 @@ def startup():
     run_db()
 
 @app.post("/detect")
-async def api_detect_objects(file: UploadFile = File(...)):
-    temp_path = f"temp_{file.filename}"
+async def api_detect_objects(file: UploadFile = File(...), background_tasks: BackgroundTasks = BackgroundTasks()):
+    temp_path = f"/tmp/temp_{file.filename}"
     with open(temp_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
@@ -40,4 +40,5 @@ async def api_detect_objects(file: UploadFile = File(...)):
     connection.close()
 
     os.remove(temp_path)
+    background_tasks.add_task(os.remove, result_image_path)
     return FileResponse(result_image_path)

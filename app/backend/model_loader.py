@@ -15,6 +15,6 @@ def detect_objects(image_path):
     
     # Save the image with detections
     plotted = results[0].plot()
-    out_path = f"out_{os.path.basename(image_path)}"
+    out_path = f"/tmp/out_{os.path.basename(image_path)}"
     cv2.imwrite(out_path, plotted)
     return count, out_path
