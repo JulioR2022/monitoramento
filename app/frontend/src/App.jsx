@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import './App.css';
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -35,13 +36,14 @@ function App() {
     fetchChatHistory();
     fetchStats();
   }, [])
-  
+
   const handleUpload = async() => {
     if (!selectedFile) return;
     setLoading(true);
+    setResultImage(null);
     const formData = new FormData();
     formData.append('file', selectedFile);
-    
+
     if (filterClasses.trim()) {
       formData.append('classes', filterClasses);
     }
@@ -68,8 +70,8 @@ function App() {
     if (!window.confirm("Tem certeza que deseja limpar todo o histórico? Essa ação não pode ser desfeita.")) return;
     try {
       await fetch('http://localhost:8000/History', { method: 'DELETE' });
-      fetchChatHistory(); // Atualiza a tabela na tela
-      fetchStats(); // Reseta os contadores do dashboard
+      fetchChatHistory();
+      fetchStats(); 
     } catch (error) {
       console.error("Erro ao limpar histórico:", error);
     }
@@ -104,78 +106,101 @@ function App() {
     document.body.removeChild(link);
   };
 
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+      setResultImage(null);
+    }
+  };
+
   return (
     <>
-      <div style={{ display: 'flex', minHeight: '100vh', width: '100vw', fontFamily: 'Arial, sans-serif' }}>
-        
+      <div className="app-container">
+
       {/* Barra Lateral (Sidebar) */}
-      <div style={{ width: '250px', backgroundColor: '#2c3e50', color: '#fff', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <h2 style={{ borderBottom: '1px solid #4a627a', paddingBottom: '15px', marginBottom: '20px', marginTop: 0 }}>
-           Monitoramento
-        </h2>
-        
-        <button 
+      <div className="sidebar">
+        <h2>Monitoramento IA</h2>
+
+        <button
           onClick={() => setCurrentView('detection')}
-          style={{ padding: '12px', backgroundColor: currentView === 'detection' ? '#34495e' : 'transparent', color: 'white', border: 'none', textAlign: 'left', cursor: 'pointer', borderRadius: '4px', fontSize: '16px' }}
+          className={`sidebar-item ${currentView === 'detection' ? 'active' : ''}`}
         >
-           Nova Detecção
+            Nova Detecção
         </button>
-        
-        <button 
+
+        <button
           onClick={() => setCurrentView('chatHistory')}
-          style={{ padding: '12px', backgroundColor: currentView === 'chatHistory' ? '#34495e' : 'transparent', color: 'white', border: 'none', textAlign: 'left', cursor: 'pointer', borderRadius: '4px', fontSize: '16px' }}
+          className={`sidebar-item ${currentView === 'chatHistory' ? 'active' : ''}`}
         >
-           Histórico
+            Histórico
         </button>
-        
-        <button 
+
+        <button
           onClick={() => setCurrentView('dashboard')}
-          style={{ padding: '12px', backgroundColor: currentView === 'dashboard' ? '#34495e' : 'transparent', color: 'white', border: 'none', textAlign: 'left', cursor: 'pointer', borderRadius: '4px', fontSize: '16px' }}
+          className={`sidebar-item ${currentView === 'dashboard' ? 'active' : ''}`}
         >
-          Estatísticas
+           Estatísticas
         </button>
       </div>
 
-      <div style={{ flex: 1, padding: '30px', backgroundColor: '#ecf0f1', overflowY: 'auto' }}>
-        
+      <div className="main-content">
+
         {/* Tela 1: Nova Detecção */}
         {currentView === 'detection' && (
-          <div>
-            <h1 style={{ marginTop: 0 }}>Nova Detecção de Objetos</h1>
-            <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <input type="file" onChange={(e) => setSelectedFile(e.target.files[0])} />
-              <input 
-                type="text" 
-                value={filterClasses} 
+          <div className="view-container">
+            <div className="view-header">
+              <h1>Nova Detecção de Objetos</h1>
+              <p>Faça upload de uma imagem para que a IA identifique os objetos.</p>
+            </div>
+
+            <div className="controls-container">
+              <div className="upload-area">
+                <label htmlFor="file-upload" className="upload-box">
+                  <input id="file-upload" type="file" onChange={handleFileChange} />
+                  {selectedFile ? `Arquivo selecionado: ${selectedFile.name}` : "Clique ou arraste uma imagem aqui"}
+                </label>
+              </div>
+              <input
+                type="text"
+                className="filter-input"
+                value={filterClasses}
                 onChange={(e) => setFilterClasses(e.target.value)}
-                placeholder="Filtro (ex: person, car)"
-                style={{ padding: '8px', borderRadius: '4px', border: '1px solid #bdc3c7', width: '200px' }}
+                placeholder="Filtro de classes (ex: person, car)"
               />
-              <div style={{ display: 'flex', flexDirection: 'column', width: '150px' }}>
-                <label style={{ fontSize: '12px', color: '#7f8c8d', marginBottom: '2px' }}>Confiança: {Math.round(confidence * 100)}%</label>
-                <input 
-                  type="range" 
-                  min="0.05" max="1.0" step="0.05" 
-                  value={confidence} 
-                  onChange={(e) => setConfidence(parseFloat(e.target.value))} 
+              <div className="confidence-slider">
+                <label>Confiança: {Math.round(confidence * 100)}%</label>
+                <input
+                  type="range"
+                  min="0.05" max="1.0" step="0.05"
+                  value={confidence}
+                  onChange={(e) => setConfidence(parseFloat(e.target.value))}
                 />
               </div>
-              <button onClick={handleUpload} disabled={loading} style={{ padding: '8px 16px', cursor: 'pointer', backgroundColor: '#3498db', color: '#fff', border: 'none', borderRadius: '4px' }}>
-                {loading ? 'Processando...' : 'Detectar Objetos'}
+              <button onClick={handleUpload} disabled={loading || !selectedFile} className="btn btn-primary">
+                {loading ? <div className="spinner"></div> : 'Detectar Objetos'}
               </button>
             </div>
 
-            <div style={{ display: 'flex', marginTop: '20px', gap: '20px' }}>
+            <div className="image-grid">
               {selectedFile && (
-                <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-                  <h3 style={{ marginTop: 0 }}>Original</h3>
-                  <img src={URL.createObjectURL(selectedFile)} width="400" alt="Original" style={{ borderRadius: '4px' }} />
+                <div className="image-card">
+                  <h3>Original</h3>
+                  <img src={URL.createObjectURL(selectedFile)} alt="Original" />
+                </div>
+              )}
+              {loading && !resultImage && (
+                <div className="image-card placeholder">
+                  <h3>Resultado</h3>
+                  <div className="processing-indicator">
+                    <div className="spinner-large"></div>
+                    <p>Analisando imagem...</p>
+                  </div>
                 </div>
               )}
               {resultImage && (
-                <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-                  <h3 style={{ marginTop: 0 }}>Resultado</h3>
-                  <img src={resultImage} width="400" alt="Resultado" style={{ borderRadius: '4px' }} />
+                <div className="image-card">
+                  <h3>Resultado</h3>
+                  <img src={resultImage} alt="Resultado" />
                 </div>
               )}
             </div>
@@ -184,21 +209,21 @@ function App() {
 
         {/* Tela 2: Histórico */}
         {currentView === 'chatHistory' && (
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h1 style={{ marginTop: 0, marginBottom: 0 }}>Histórico de Detecções</h1>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={handleExportCSV} style={{ padding: '8px 16px', cursor: 'pointer', backgroundColor: '#27ae60', color: '#fff', border: 'none', borderRadius: '4px' }}>
+          <div className="view-container">
+            <div className="view-header">
+              <h1>Histórico de Detecções</h1>
+              <div className="history-actions">
+                <button onClick={handleExportCSV} className="btn btn-secondary">
                   ⬇️ Exportar CSV
                 </button>
-                <button onClick={handleClearHistory} style={{ padding: '8px 16px', cursor: 'pointer', backgroundColor: '#e74c3c', color: '#fff', border: 'none', borderRadius: '4px' }}>
+                <button onClick={handleClearHistory} className="btn btn-danger">
                   🗑️ Limpar Histórico
                 </button>
               </div>
             </div>
-            
-            <table border="1" cellPadding="10" style={{ borderCollapse: 'collapse', width: '100%', textAlign: 'left', backgroundColor: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', border: 'none' }}>
-              <thead style={{ backgroundColor: '#bdc3c7' }}>
+
+            <table className="history-table">
+              <thead>
                 <tr>
                   <th>ID</th>
                   <th>Data/Hora</th>
@@ -207,14 +232,18 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {chatHistory.map((item) => (
-                  <tr key={item.id} style={{ borderBottom: '1px solid #ecf0f1' }}>
+                {chatHistory.length > 0 ? chatHistory.map((item) => (
+                  <tr key={item.id}>
                     <td>{item.id}</td>
                     <td>{new Date(item.data_hora).toLocaleString()}</td>
                     <td>{item.arquivo}</td>
-                    <td><pre style={{ margin: 0, fontSize: '13px' }}>{JSON.stringify(item.contagem_json, null, 2)}</pre></td>
+                    <td><pre>{JSON.stringify(item.contagem_json, null, 2)}</pre></td>
                   </tr>
-                ))}
+                )) : (
+                  <tr>
+                    <td colSpan="4" className="empty-table">Nenhum registro encontrado.</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -222,34 +251,38 @@ function App() {
 
         {/* Tela 3: Dashboard */}
         {currentView === 'dashboard' && (
-          <div>
-            <h1 style={{ marginTop: 0, marginBottom: '20px' }}>Dashboard de Estatísticas</h1>
+          <div className="view-container">
+            <div className="view-header">
+              <h1>Dashboard de Estatísticas</h1>
+            </div>
             {stats ? (
               <>
-                <div style={{ display: 'flex', gap: '20px', marginBottom: '30px' }}>
-                  <div style={{ flex: 1, backgroundColor: '#3498db', color: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-                    <h3 style={{ margin: '0 0 10px 0' }}>Imagens Processadas</h3>
-                    <p style={{ fontSize: '36px', margin: 0, fontWeight: 'bold' }}>{stats.total_images}</p>
+                <div className="stats-grid">
+                  <div className="stat-card blue">
+                    <h3>Imagens Processadas</h3>
+                    <p>{stats.total_images}</p>
                   </div>
-                  <div style={{ flex: 1, backgroundColor: '#2ecc71', color: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-                    <h3 style={{ margin: '0 0 10px 0' }}>Objetos Detectados</h3>
-                    <p style={{ fontSize: '36px', margin: 0, fontWeight: 'bold' }}>{stats.total_objects}</p>
+                  <div className="stat-card green">
+                    <h3>Objetos Detectados</h3>
+                    <p>{stats.total_objects}</p>
                   </div>
                 </div>
 
-                <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-                  <h3 style={{ margin: '0 0 15px 0', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>Objetos por Classe</h3>
+                <div className="class-count-card">
+                  <h3>Objetos por Classe</h3>
                   {Object.keys(stats.classes_count).length > 0 ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '15px' }}>
-                      {Object.entries(stats.classes_count).map(([classe, contagem]) => (
-                        <div key={classe} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
-                          <span style={{ fontWeight: 'bold', textTransform: 'capitalize' }}>{classe}</span>
-                          <span style={{ backgroundColor: '#e74c3c', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '14px' }}>{contagem}</span>
+                    <div className="class-list">
+                      {Object.entries(stats.classes_count)
+                        .sort(([, a], [, b]) => b - a)
+                        .map(([classe, contagem]) => (
+                        <div key={classe} className="class-item">
+                          <span>{classe}</span>
+                          <span className="count-badge">{contagem}</span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p style={{ color: '#7f8c8d' }}>Nenhum objeto detectado ainda.</p>
+                    <p className="empty-message">Nenhum objeto detectado ainda.</p>
                   )}
                 </div>
               </>
@@ -258,7 +291,6 @@ function App() {
             )}
           </div>
         )}
-
       </div>
     </div>
     </>
