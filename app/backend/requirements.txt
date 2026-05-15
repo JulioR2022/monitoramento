@@ -4,3 +4,6 @@ ultralytics
 python-multipart
 opencv-python-headless
 mysql-connector-python
+PyJWT==2.8.0
+bcrypt==3.2.2
+passlib[bcrypt]==1.7.4
