@@ -10,11 +10,20 @@ function App() {
   const [filterClasses, setFilterClasses] = useState('');
   const [confidence, setConfidence] = useState(0.5);
   const [stats, setStats] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
 
   const fetchChatHistory = async() => {
     try {
       // Requisição para a rota History
-      const response = await fetch('http://localhost:8000/History');
+      const response = await fetch('http://localhost:8000/History', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       const data = await response.json();
       setChatHistory(data);
     } catch (error) {
@@ -24,7 +33,11 @@ function App() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://localhost:8000/statistics');
+      const response = await fetch('http://localhost:8000/statistics', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       const data = await response.json();
       setStats(data);
     } catch (error) {
@@ -33,6 +46,10 @@ function App() {
   };
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if(token){
+      setIsAuthenticated(true);
+    }
     fetchChatHistory();
     fetchStats();
   }, [])
@@ -52,6 +69,9 @@ function App() {
     try {
       const response = await fetch('http://localhost:8000/detect', {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
         body: formData,
       });
 
@@ -69,7 +89,12 @@ function App() {
   const handleClearHistory = async () => {
     if (!window.confirm("Tem certeza que deseja limpar todo o histórico? Essa ação não pode ser desfeita.")) return;
     try {
-      await fetch('http://localhost:8000/History', { method: 'DELETE' });
+      await fetch('http://localhost:8000/History', { 
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       fetchChatHistory();
       fetchStats(); 
     } catch (error) {
@@ -113,8 +138,67 @@ function App() {
     }
   };
 
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    const form = new URLSearchParams();
+    form.append('username',username);
+    form.append('password',password);
+
+    try{
+      const response = await fetch('http://localhost:8000/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: form
+      });
+
+      if (response.ok){
+        const data = await response.json();
+        localStorage.setItem('token', data.access_token);
+        setIsAuthenticated(true);
+      } else {
+        setLoginError('Usuario ou senha incorretos');
+      };
+
+    } catch (error) {
+      setLoginError('Error ao conectar ao servidor');
+    };
+
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsAuthenticated(false);
+  };
+
   return (
     <>
+      {!isAuthenticated ? (
+        <div className="login-container">
+          <form className="login-form" onSubmit={handleLogin}>
+            <h2>Entrar no Sistema</h2>
+            {loginError && <p style={{ color: '#ef4444', textAlign: 'center', margin: 0 }}>{loginError}</p>}
+            <input 
+              type="text" 
+              placeholder="Usuário" 
+              required 
+              className="filter-input" 
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+            <input 
+              type="password" 
+              placeholder="Senha" 
+              required 
+              className="filter-input" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button type="submit" className="btn btn-primary">Entrar</button>
+          </form>
+        </div>
+      ) : (
       <div className="app-container">
 
       {/* Barra Lateral (Sidebar) */}
@@ -140,6 +224,11 @@ function App() {
           className={`sidebar-item ${currentView === 'dashboard' ? 'active' : ''}`}
         >
            Estatísticas
+        </button>
+
+        <div style={{ flexGrow: 1 }}></div>
+        <button onClick={handleLogout} className="sidebar-item logout-btn">
+          🚪 Sair
         </button>
       </div>
 
@@ -229,6 +318,7 @@ function App() {
                   <th>Data/Hora</th>
                   <th>Arquivo</th>
                   <th>Contagem</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -237,11 +327,25 @@ function App() {
                     <td>{item.id}</td>
                     <td>{new Date(item.data_hora).toLocaleString()}</td>
                     <td>{item.arquivo}</td>
-                    <td><pre>{JSON.stringify(item.contagem_json, null, 2)}</pre></td>
+                    <td>
+                      <div className="history-tags">
+                        {Object.entries(item.contagem_json || {}).map(([cls, count]) => (
+                          <span key={cls} className="history-tag">
+                            <span className="history-tag-name">{cls}</span>
+                            <span className="history-tag-count">{count}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td>
+                      <button className="btn btn-secondary btn-sm" onClick={() => setSelectedHistoryItem(item)}>
+                        👁️ Ver
+                      </button>
+                    </td>
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan="4" className="empty-table">Nenhum registro encontrado.</td>
+                    <td colSpan="5" className="empty-table">Nenhum registro encontrado.</td>
                   </tr>
                 )}
               </tbody>
@@ -293,6 +397,34 @@ function App() {
         )}
       </div>
     </div>
+      )}
+
+     
+      {selectedHistoryItem && (
+        <div className="modal-overlay" onClick={() => setSelectedHistoryItem(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setSelectedHistoryItem(null)}>×</button>
+            <h2>Detalhes da Detecção</h2>
+            <p><strong>Arquivo:</strong> {selectedHistoryItem.arquivo}</p>
+            <img 
+              src={`http://localhost:8000/images/${selectedHistoryItem.arquivo}`} 
+              alt={selectedHistoryItem.arquivo} 
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = 'https://via.placeholder.com/800x400?text=Imagem+nao+encontrada+no+servidor';
+              }}
+            />
+            <div className="history-tags mt-4">
+              {Object.entries(selectedHistoryItem.contagem_json || {}).map(([cls, count]) => (
+                <span key={cls} className="history-tag">
+                  <span className="history-tag-name">{cls}</span>
+                  <span className="history-tag-count">{count}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
