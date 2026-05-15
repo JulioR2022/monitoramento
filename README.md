@@ -8,6 +8,14 @@ O sistema permite que o usuário faça o upload de uma imagem através de uma in
 
 Após a detecção, o backend salva um registro no banco de dados contendo o nome do arquivo e a contagem de cada classe detectada (em formato JSON) e devolve a imagem processada para ser exibida no frontend.
 
+### ✨ Principais Funcionalidades
+- **Detecção Avançada:** Identificação e contagem de objetos em imagens usando YOLOv8.
+- **Filtro de Classes:** Capacidade de focar a detecção apenas em objetos de interesse digitados pelo usuário (ex: `person, car`).
+- **Ajuste de Confiança (Threshold):** Controle deslizante para definir a certeza mínima exigida pela IA, evitando falsos positivos.
+- **Dashboard de Estatísticas:** Painel em tempo real com o consolidado de imagens processadas e ranking dos objetos mais detectados.
+- **Histórico Persistente:** Tabela completa com todas as predições realizadas, armazenadas de forma segura no MySQL.
+- **Gerenciamento de Dados:** Opção para exportar o histórico de detecções para formato CSV ou realizar a limpeza da base de dados.
+
 ###  Tecnologias Utilizadas
 
 - **Frontend:** React + Vite
@@ -47,4 +55,3 @@ Para parar e remover os contêineres, basta pressionar `CTRL+C` no terminal onde
 ```bash
 docker-compose down
 ```
-
