@@ -10,7 +10,7 @@ function App() {
   const [filterClasses, setFilterClasses] = useState('');
   const [confidence, setConfidence] = useState(0.5);
   const [stats, setStats] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
   const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -25,6 +25,11 @@ function App() {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        setIsAuthenticated(false);
+        return;
+      }
       const data = await response.json();
       setChatHistory(data);
     } catch (error) {
@@ -39,6 +44,11 @@ function App() {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        setIsAuthenticated(false);
+        return;
+      }
       const data = await response.json();
       setStats(data);
     } catch (error) {
@@ -47,13 +57,11 @@ function App() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if(token){
-      setIsAuthenticated(true);
+    if (isAuthenticated) {
+      fetchChatHistory();
+      fetchStats();
     }
-    fetchChatHistory();
-    fetchStats();
-  }, [])
+  }, [isAuthenticated]);
 
   const handleUpload = async() => {
     if (!selectedFile) return;
@@ -76,6 +84,12 @@ function App() {
         body: formData,
       });
 
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        setIsAuthenticated(false);
+        return;
+      }
+
       const blob = await response.blob();
       setResultImage(URL.createObjectURL(blob));
       fetchChatHistory();
@@ -90,12 +104,19 @@ function App() {
   const handleClearHistory = async () => {
     if (!window.confirm("Tem certeza que deseja limpar todo o histórico? Essa ação não pode ser desfeita.")) return;
     try {
-      await fetch('http://localhost:8000/History', { 
+      const response = await fetch('http://localhost:8000/History', { 
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
+
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        setIsAuthenticated(false);
+        return;
+      }
+
       fetchChatHistory();
       fetchStats(); 
     } catch (error) {
