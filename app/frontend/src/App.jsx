@@ -1,13 +1,34 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 
+const AVAILABLE_CLASSES = [
+  { value: '', label: 'Todas as classes' },
+  { value: 'person', label: 'Pessoa' },
+  { value: 'car', label: 'Carro' },
+  { value: 'motorcycle', label: 'Moto' },
+  { value: 'bus', label: 'Ônibus' },
+  { value: 'truck', label: 'Caminhão' },
+  { value: 'bicycle', label: 'Bicicleta' },
+  { value: 'dog', label: 'Cachorro' },
+  { value: 'cat', label: 'Gato' },
+  { value: 'bird', label: 'Pássaro' },
+  { value: 'horse', label: 'Cavalo' },
+  { value: 'cell phone', label: 'Celular' },
+  { value: 'laptop', label: 'Laptop' },
+  { value: 'bottle', label: 'Garrafa' },
+  { value: 'cup', label: 'Copo' },
+  { value: 'chair', label: 'Cadeira' },
+  { value: 'tv', label: 'TV' }
+];
+
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [resultImage, setResultImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [chatHistory, setChatHistory] = useState([]);
   const [currentView, setCurrentView] = useState('detection');
-  const [filterClasses, setFilterClasses] = useState('');
+  const [selectedClasses, setSelectedClasses] = useState([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [confidence, setConfidence] = useState(0.5);
   const [stats, setStats] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
@@ -63,6 +84,23 @@ function App() {
     }
   }, [isAuthenticated]);
 
+  const toggleClass = (classValue) => {
+    if (classValue === '') {
+      setSelectedClasses([]);
+    } else {
+      setSelectedClasses(prev => 
+        prev.includes(classValue) 
+          ? prev.filter(c => c !== classValue) 
+          : [...prev, classValue]
+      );
+    }
+  };
+
+  const removeClass = (e, classValue) => {
+    e.stopPropagation();
+    setSelectedClasses(prev => prev.filter(c => c !== classValue));
+  };
+
   const handleUpload = async() => {
     if (!selectedFile) return;
     setLoading(true);
@@ -70,9 +108,7 @@ function App() {
     const formData = new FormData();
     formData.append('file', selectedFile);
 
-    if (filterClasses.trim()) {
-      formData.append('classes', filterClasses);
-    }
+    formData.append('classes', selectedClasses.join(','));
     formData.append('conf', confidence);
 
     try {
@@ -94,6 +130,7 @@ function App() {
       setResultImage(URL.createObjectURL(blob));
       fetchChatHistory();
       fetchStats();
+      setSelectedClasses([]);
     } catch (error) {
       console.error("Erro na detecção:", error);
     } finally {
@@ -293,11 +330,11 @@ function App() {
 
       <div className="main-content">
 
-        {/* Tela 1: Nova Detecção */}
+        {/* Tela 1: Detecção */}
         {currentView === 'detection' && (
           <div className="view-container">
             <div className="view-header">
-              <h1>Nova Detecção de Objetos</h1>
+              <h1>Detecção de Objetos</h1>
               <p>Faça upload de uma imagem para que a IA identifique os objetos.</p>
             </div>
 
@@ -308,13 +345,55 @@ function App() {
                   {selectedFile ? `Arquivo selecionado: ${selectedFile.name}` : "Clique ou arraste uma imagem aqui"}
                 </label>
               </div>
-              <input
-                type="text"
-                className="filter-input"
-                value={filterClasses}
-                onChange={(e) => setFilterClasses(e.target.value)}
-                placeholder="Filtro de classes (ex: person, car)"
-              />
+              <div className="custom-multiselect">
+                <div 
+                  className="multiselect-header filter-input" 
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                >
+                  {selectedClasses.length === 0 ? (
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>Todas as classes</span>
+                  ) : (
+                    <div className="selected-tags">
+                      {selectedClasses.map(val => {
+                        const classObj = AVAILABLE_CLASSES.find(c => c.value === val);
+                        return classObj ? (
+                          <span key={val} className="filter-tag">
+                            {classObj.label}
+                            <button 
+                              type="button" 
+                              className="remove-tag" 
+                              onClick={(e) => removeClass(e, val)}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                  <span className="dropdown-arrow">{isDropdownOpen ? '▲' : '▼'}</span>
+                </div>
+
+                {isDropdownOpen && (
+                  <div className="multiselect-options">
+                    {AVAILABLE_CLASSES.map(cls => {
+                      const isSelected = cls.value === '' ? selectedClasses.length === 0 : selectedClasses.includes(cls.value);
+                      return (
+                        <div
+                          key={cls.value === '' ? 'all' : cls.value}
+                          className={`multiselect-option ${isSelected ? 'selected' : ''}`}
+                          onClick={() => toggleClass(cls.value)}
+                        >
+                          <div className="checkbox-custom">
+                            {isSelected && '✓'}
+                          </div>
+                          {cls.label}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
               <div className="confidence-slider">
                 <label>Confiança: {Math.round(confidence * 100)}%</label>
                 <input
@@ -355,7 +434,7 @@ function App() {
           </div>
         )}
 
-        {/* Tela 2: Histórico */}
+        {/* Tela 2: Vizualizar Historico */}
         {currentView === 'chatHistory' && (
           <div className="view-container">
             <div className="view-header">
@@ -412,7 +491,7 @@ function App() {
           </div>
         )}
 
-        {/* Tela 3: Dashboard */}
+        {/* Tela 3: Tela de estatisticas */}
         {currentView === 'dashboard' && (
           <div className="view-container">
             <div className="view-header">

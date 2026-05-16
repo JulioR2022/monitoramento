@@ -46,6 +46,11 @@ Como o projeto utiliza Docker, você não precisa instalar o Python, Node.js ou 
    - **Frontend (Interface Web):** Abra o seu navegador e acesse [http://localhost:5173](http://localhost:5173)
    - **Backend (Swagger UI):** Acesse a documentação interativa da API em [http://localhost:8000/docs](http://localhost:8000/docs)
 
+### Acesso ao Sistema
+Ao acessar a aplicação web, será solicitada a autenticação na tela inicial. Você pode:
+- **Fazer login como Administrador:** Utilize as credenciais padrão já criadas pelo sistema (Usuário: `admin` | Senha: `admin`).
+- **Criar uma nova conta:** Clique no botão "Não tem conta? Registre-se" na tela de login para criar um acesso personalizado.
+
 ## Infraestrutura e Docker
 Este projeto foi otimizado utilizando os conceitos de Base Image e Layer Caching do Docker. Bibliotecas pesadas,como YOLOv8 e OpenCV, e dependências de processamento de imagem foram isoladas em uma imagem base pública (juliorsilva/monitoramento-base) hospedada no Docker Hub. Isso permite que a inicialização local do projeto ou a pipeline de deploy na nuvem ocorram em segundos, eliminando os gargalos de compilação e o longo tempo de download dos pesos do modelo de IA que ocorreriam em uma configuração tradicional.
 

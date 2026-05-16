@@ -13,11 +13,8 @@ def detect_objects(image_path, classes, conf=0.5):
             class_name = class_name.strip().lower()
             if class_name in name_to_id:
                 target_classes.append(name_to_id[class_name])
-    results = None
-    if classes:
-        results = model(image_path, classes=target_classes, conf=conf)
-    else:
-        results = model(image_path, conf=conf)
+                    
+    results = model(image_path, classes=target_classes, conf=conf)
     count = {}
     for result in results:
         for box in result.boxes:
@@ -25,7 +22,6 @@ def detect_objects(image_path, classes, conf=0.5):
             label = model.names[class_id]
             count[label] = count.get(label,0) + 1
     
-    # Save the image with detections
     plotted = results[0].plot()
     out_path = f"/tmp/out_{os.path.basename(image_path)}"
     cv2.imwrite(out_path, plotted)
