@@ -15,6 +15,7 @@ function App() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
 
   const fetchChatHistory = async() => {
     try {
@@ -167,6 +168,36 @@ function App() {
 
   };
 
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    
+    const form = new URLSearchParams();
+    form.append('username', username);
+    form.append('password', password);
+
+    try {
+      const response = await fetch('http://localhost:8000/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: form
+      });
+
+      if (response.ok) {
+        alert('Usuário registrado com sucesso! Agora você pode fazer login.');
+        setIsRegistering(false);
+        setPassword(''); 
+      } else {
+        const data = await response.json();
+        setLoginError(data.detail || 'Erro ao registrar usuário');
+      }
+    } catch (error) {
+      setLoginError('Erro ao conectar ao servidor');
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     setIsAuthenticated(false);
@@ -176,8 +207,8 @@ function App() {
     <>
       {!isAuthenticated ? (
         <div className="login-container">
-          <form className="login-form" onSubmit={handleLogin}>
-            <h2>Entrar no Sistema</h2>
+          <form className="login-form" onSubmit={isRegistering ? handleRegister : handleLogin}>
+            <h2>{isRegistering ? 'Criar Nova Conta' : 'Entrar no Sistema'}</h2>
             {loginError && <p style={{ color: '#ef4444', textAlign: 'center', margin: 0 }}>{loginError}</p>}
             <input 
               type="text" 
@@ -195,7 +226,14 @@ function App() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            <button type="submit" className="btn btn-primary">Entrar</button>
+            <button type="submit" className="btn btn-primary">
+              {isRegistering ? 'Registrar' : 'Entrar'}
+            </button>
+            
+            <p style={{ textAlign: 'center', fontSize: '0.9rem', cursor: 'pointer', color: 'var(--accent-blue)', marginTop: '10px' }} 
+               onClick={() => { setIsRegistering(!isRegistering); setLoginError(''); }}>
+              {isRegistering ? 'Já tem uma conta? Faça login' : 'Não tem conta? Registre-se'}
+            </p>
           </form>
         </div>
       ) : (

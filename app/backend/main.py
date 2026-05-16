@@ -3,7 +3,7 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
-from auth import verify_hash_password, create_access_token, get_current_user
+from auth import verify_hash_password, create_access_token, get_current_user, get_hash_password
 from model_loader import detect_objects
 from database import get_db_connection, run_db
 import json
@@ -117,6 +117,28 @@ async def get_statistics(current_user: str = Depends(get_current_user)):
         "total_objects": total_objects,
         "classes_count": classes_count
     }
+
+@app.post('/register')
+async def register_user(username: str = Form(...), password: str = Form(...)):
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    
+    cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
+    if cursor.fetchone():
+        cursor.close()
+        connection.close()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nome de usuário já existe"
+        )
+        
+    hashed_pwd = get_hash_password(password)
+    cursor.execute("INSERT INTO users (username, hash_password) VALUES (%s, %s)", (username, hashed_pwd))
+    connection.commit()
+    cursor.close()
+    connection.close()
+    
+    return {"message": "Usuário criado com sucesso!"}
 
 @app.post('/token')
 async def login(form: OAuth2PasswordRequestForm = Depends()):
