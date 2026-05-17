@@ -5,7 +5,7 @@ import time
 from auth import get_hash_password
 
 def get_db_connection(retries=5, delay=5):
-    db_url = os.getenv("DATABASE_URL", "postgresql://usuario:senha@localhost:5432/monitoramento")
+    db_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgrespassword@db-monitoramento:5432/monitoramento")
     for attempt in range(retries):
         try:
             #return mysql.connector.connect(

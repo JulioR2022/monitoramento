@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 const AVAILABLE_CLASSES = [
   { value: '', label: 'Todas as classes' },
   { value: 'person', label: 'Pessoa' },
@@ -41,7 +43,7 @@ function App() {
   const fetchChatHistory = async() => {
     try {
       // Requisição para a rota History
-      const response = await fetch('http://localhost:8000/History', {
+      const response = await fetch(`${API_URL}/History`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -60,7 +62,7 @@ function App() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('http://localhost:8000/statistics', {
+      const response = await fetch(`${API_URL}/statistics`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -112,7 +114,7 @@ function App() {
     formData.append('conf', confidence);
 
     try {
-      const response = await fetch('http://localhost:8000/detect', {
+      const response = await fetch(`${API_URL}/detect`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -141,7 +143,7 @@ function App() {
   const handleClearHistory = async () => {
     if (!window.confirm("Tem certeza que deseja limpar todo o histórico? Essa ação não pode ser desfeita.")) return;
     try {
-      const response = await fetch('http://localhost:8000/History', { 
+      const response = await fetch(`${API_URL}/History`, { 
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -204,7 +206,7 @@ function App() {
     form.append('password',password);
 
     try{
-      const response = await fetch('http://localhost:8000/token', {
+      const response = await fetch(`${API_URL}/token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -235,7 +237,7 @@ function App() {
     form.append('password', password);
 
     try {
-      const response = await fetch('http://localhost:8000/register', {
+      const response = await fetch(`${API_URL}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -545,7 +547,7 @@ function App() {
             <h2>Detalhes da Detecção</h2>
             <p><strong>Arquivo:</strong> {selectedHistoryItem.arquivo}</p>
             <img 
-              src={`http://localhost:8000/images/${selectedHistoryItem.arquivo}`} 
+              src={`${API_URL}/images/${selectedHistoryItem.arquivo}`} 
               alt={selectedHistoryItem.arquivo} 
               onError={(e) => {
                 e.target.onerror = null;
