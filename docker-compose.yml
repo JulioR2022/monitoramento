@@ -15,15 +15,16 @@ services:
     restart: always
   
   db-monitoramento:
-    image: mysql:8.0
+    image: postgres:15-alpine
     container_name: db-monitoramento
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: monitoramento    
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: monitoramento    
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data:/var/lib/postgresql/data
   
   frontend-react:
     build: ./app/frontend

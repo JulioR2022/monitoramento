@@ -1,18 +1,21 @@
-import mysql.connector
+import psycopg2
+from psycopg2 import OperationalError
 import os
 import time
 from auth import get_hash_password
 
 def get_db_connection(retries=5, delay=5):
+    db_url = os.getenv("DATABASE_URL", "postgresql://usuario:senha@localhost:5432/monitoramento")
     for attempt in range(retries):
         try:
-            return mysql.connector.connect(
-                host='db-monitoramento',
-                user='root',
-                password='rootpassword',
-                database='monitoramento'
-            )
-        except mysql.connector.Error as err:
+            #return mysql.connector.connect(
+             #   host='db-monitoramento',
+              #  user='root',
+               # password='rootpassword',
+                #database='monitoramento'
+            #)
+            return psycopg2.connect(db_url)
+        except OperationalError as err:
             if attempt < retries - 1:
                 print(f"Aviso: Banco de dados não está pronto. Tentativa {attempt + 1}/{retries}. Aguardando {delay} segundos...")
                 time.sleep(delay)
@@ -24,7 +27,7 @@ def run_db():
     cursor = connection.cursor()
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS detections (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         data_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         arquivo VARCHAR(255),
         contagem_json TEXT
@@ -32,7 +35,7 @@ def run_db():
 """)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         USERNAME varchar(50) NOT NULL,
         hash_password VARCHAR(255) NOT NULL
 
