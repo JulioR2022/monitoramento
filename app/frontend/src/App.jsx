@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './App.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -512,19 +513,24 @@ function App() {
                   </div>
                 </div>
 
-                <div className="class-count-card">
-                  <h3>Objetos por Classe</h3>
+                <div className="class-count-card" style={{ marginTop: '20px', height: '400px', paddingBottom: '40px' }}>
+                  <h3 style={{ marginBottom: '20px' }}>Distribuição de Objetos por Classe</h3>
                   {Object.keys(stats.classes_count).length > 0 ? (
-                    <div className="class-list">
-                      {Object.entries(stats.classes_count)
-                        .sort(([, a], [, b]) => b - a)
-                        .map(([classe, contagem]) => (
-                        <div key={classe} className="class-item">
-                          <span>{classe}</span>
-                          <span className="count-badge">{contagem}</span>
-                        </div>
-                      ))}
-                    </div>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={Object.entries(stats.classes_count)
+                          .sort(([, a], [, b]) => b - a)
+                          .map(([name, count]) => ({ name, count }))}
+                        margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }} />
+                        <Legend />
+                        <Bar dataKey="count" name="Quantidade" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
                   ) : (
                     <p className="empty-message">Nenhum objeto detectado ainda.</p>
                   )}
