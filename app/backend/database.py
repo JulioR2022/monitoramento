@@ -28,6 +28,7 @@ def run_db():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS detections (
         id SERIAL PRIMARY KEY,
+        username VARCHAR(50),
         data_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         arquivo VARCHAR(255),
         contagem_json TEXT

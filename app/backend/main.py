@@ -32,6 +32,7 @@ def startup():
 @app.post("/detect")
 async def api_detect_objects(file: UploadFile = File(...), classes: str = Form(""), conf: float = Form(0.25), current_user:str = Depends(get_current_user)):
     
+    os.makedirs(f'static/images/{current_user}', exist_ok=True)
     unique_filename = f"{int(time.time())}_{file.filename}"
     temp_path = f"/tmp/{unique_filename}"
 
@@ -40,17 +41,19 @@ async def api_detect_objects(file: UploadFile = File(...), classes: str = Form("
 
     count, tmp_result_image_path = detect_objects(temp_path, classes, conf)
     
-    final_image_path = f"static/images/{unique_filename}"
+    final_image_path = f"static/images/{current_user}/{unique_filename}"
     shutil.move(tmp_result_image_path, final_image_path)
     
     connection = get_db_connection()
-    cursor = connection.cursor()
-    sql_command = "INSERT INTO detections (arquivo, contagem_json) VALUES (%s, %s)"
-    val = (unique_filename, json.dumps(count))
-    cursor.execute(sql_command, val)
-    connection.commit()
-    cursor.close()
-    connection.close()
+    try:
+        cursor = connection.cursor()
+        sql_command = "INSERT INTO detections (username, arquivo, contagem_json) VALUES ( %s, %s, %s)"
+        val = (current_user ,unique_filename, json.dumps(count))
+        cursor.execute(sql_command, val)
+        connection.commit()
+    finally:
+        cursor.close()
+        connection.close()
 
     os.remove(temp_path)
     return FileResponse(final_image_path)
@@ -58,43 +61,86 @@ async def api_detect_objects(file: UploadFile = File(...), classes: str = Form("
 @app.get("/History")
 async def get_history(current_user: str = Depends(get_current_user)):
     connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute("SELECT * FROM detections ORDER BY id DESC")
-    records = cursor.fetchall()
+    records = None
+    try:
+        cursor = connection.cursor()
+        cursor.execute("SELECT * FROM detections WHERE username = %s ORDER BY id DESC", (current_user,))
+        records = cursor.fetchall()
+    finally:
+        cursor.close()
+        connection.close()
+
     results = []
     for row in records:
         results.append({
             "id": row[0],
-            "data_hora": row[1],
-            "arquivo": row[2],
-            "contagem_json": json.loads(row[3])
+            "username": row[1],
+            "data_hora": row[2],
+            "arquivo": row[3],
+            "contagem_json": json.loads(row[4])
         })
-    cursor.close()
-    connection.close()
     return results
 
 @app.delete("/History")
 async def clear_history(current_user: str = Depends(get_current_user)):
     connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute("TRUNCATE TABLE detections")
-    connection.commit()
-    cursor.close()
-    connection.close()
+    try:
+        cursor = connection.cursor()
+        command = 'DELETE FROM detections WHERE username = %s'
+        cursor.execute(command,(current_user,))
+        connection.commit()
+    finally:
+        cursor.close()
+        connection.close()
     
-    for filename in os.listdir("static/images"):
-        file_path = os.path.join("static/images", filename)
-        if os.path.isfile(file_path):
-            os.remove(file_path)
+    user_dir = f"static/images/{current_user}"
+    if os.path.exists(user_dir):
+        shutil.rmtree(user_dir)
             
     return {"message": "Histórico limpo com sucesso"}
+
+@app.delete("/deleteUser")
+async def deleteUser(current_user: str = Depends(get_current_user)):
+    if(current_user == 'admin'):
+        raise HTTPException(
+            status_code = status.HTTP_403_FORBIDDEN,
+            detail = 'Usuario admin não pose ser apagado'
+        )
+    
+    connection = get_db_connection()
+    try:
+        cursor = connection.cursor()
+        # Apaga registros no banco
+        command = 'DELETE FROM detections WHERE username = %s'
+        cursor.execute(command,(current_user,))
+        
+        #Apaga usuario
+        command = 'DELETE FROM users WHERE username = %s'
+        cursor.execute(command, (current_user,))
+        connection.commit()
+    finally:
+        cursor.close()
+        connection.close()    
+    #Apaga pasta de fotos
+    user_dir = f"static/images/{current_user}"
+    if os.path.exists(user_dir):
+        shutil.rmtree(user_dir)
+        
+    return {"message": "Usuário deletado com sucesso"}
+
 
 @app.get("/statistics")
 async def get_statistics(current_user: str = Depends(get_current_user)):
     connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute("SELECT contagem_json FROM detections")
-    records = cursor.fetchall()
+    records = None
+    try:   
+        cursor = connection.cursor()
+        command = "SELECT contagem_json FROM detections WHERE username = %s"
+        cursor.execute(command, (current_user,))
+        records = cursor.fetchall()
+    finally:
+        cursor.close()
+        connection.close()
     
     total_images = len(records)
     total_objects = 0
@@ -107,8 +153,6 @@ async def get_statistics(current_user: str = Depends(get_current_user)):
                 classes_count[classe] = classes_count.get(classe, 0) + qtd
                 total_objects += qtd
                 
-    cursor.close()
-    connection.close()
     
     classes_count = dict(sorted(classes_count.items(), key=lambda item: item[1], reverse=True))
     
@@ -118,39 +162,42 @@ async def get_statistics(current_user: str = Depends(get_current_user)):
         "classes_count": classes_count
     }
 
-@app.post('/register')
+@app.post('/register', status_code = status.HTTP_201_CREATED)
 async def register_user(username: str = Form(...), password: str = Form(...)):
     connection = get_db_connection()
-    cursor = connection.cursor()
-    
-    cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
-    if cursor.fetchone():
+    try:
+        cursor = connection.cursor()
+        
+        cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
+        if cursor.fetchone():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Nome de usuário já existe"
+            )
+            
+        hashed_pwd = get_hash_password(password)
+        cursor.execute("INSERT INTO users (username, hash_password) VALUES (%s, %s)", (username, hashed_pwd))
+        connection.commit()
+    finally:
         cursor.close()
         connection.close()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nome de usuário já existe"
-        )
-        
-    hashed_pwd = get_hash_password(password)
-    cursor.execute("INSERT INTO users (username, hash_password) VALUES (%s, %s)", (username, hashed_pwd))
-    connection.commit()
-    cursor.close()
-    connection.close()
     
     return {"message": "Usuário criado com sucesso!"}
 
 @app.post('/token')
 async def login(form: OAuth2PasswordRequestForm = Depends()):
     connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute("""
-    SELECT hash_password FROM users
-    WHERE username = %s
-    """, (form.username,))
-    hash_password = cursor.fetchone()
-    cursor.close()
-    connection.close()
+    hash_password = ''
+    try:
+        cursor = connection.cursor()
+        cursor.execute("""
+        SELECT hash_password FROM users
+        WHERE username = %s
+        """, (form.username,))
+        hash_password = cursor.fetchone()
+    finally:
+        cursor.close()
+        connection.close()
 
     if not hash_password:
         raise HTTPException(status_code = status.HTTP_401_UNAUTHORIZED,

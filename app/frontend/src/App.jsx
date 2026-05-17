@@ -40,7 +40,7 @@ function App() {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
-
+ 
   const fetchChatHistory = async() => {
     try {
       // Requisição para a rota History
@@ -138,6 +138,36 @@ function App() {
       console.error("Erro na detecção:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async() => {
+    if(!window.confirm("Tem certeza que deseja excluir o usuario ? Essa ação não pode ser desfeita.")) return;
+    try {
+      const response = await fetch(`${API_URL}/deleteUser`,{
+        method: 'DELETE',
+        headers: {
+          'Authorization':`Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if(response.status === 401) { // token expirado
+        handleLogout();
+        return;
+      };
+      
+      if(response.status === 403) { // token expirado
+        alert('Essa conta não pode ser apagada');
+        return;
+      };
+      
+      if(response.ok) {
+        alert('Sua conta foi excluída com sucesso');
+        handleLogout();
+        return;
+      };
+    } catch (error) {
+      console.error("Erro ao apagar usuario:", error);
     }
   };
 
@@ -326,6 +356,9 @@ function App() {
         </button>
 
         <div style={{ flexGrow: 1 }}></div>
+        <button onClick={handleDeleteUser} className="sidebar-item" style={{ color: '#ef4444' }}>
+          🗑️ Apagar Conta
+        </button>
         <button onClick={handleLogout} className="sidebar-item logout-btn">
           🚪 Sair
         </button>
@@ -553,7 +586,7 @@ function App() {
             <h2>Detalhes da Detecção</h2>
             <p><strong>Arquivo:</strong> {selectedHistoryItem.arquivo}</p>
             <img 
-              src={`${API_URL}/images/${selectedHistoryItem.arquivo}`} 
+              src={`${API_URL}/images/${selectedHistoryItem.username}/${selectedHistoryItem.arquivo}`} 
               alt={selectedHistoryItem.arquivo} 
               onError={(e) => {
                 e.target.onerror = null;
