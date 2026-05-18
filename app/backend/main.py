@@ -30,7 +30,7 @@ def startup():
     run_db()
 
 @app.post("/detect")
-async def api_detect_objects(file: UploadFile = File(...), classes: str = Form(""), conf: float = Form(0.25), current_user:str = Depends(get_current_user)):
+def api_detect_objects(file: UploadFile = File(...), classes: str = Form(""), conf: float = Form(0.25), current_user:str = Depends(get_current_user)):
     
     os.makedirs(f'static/images/{current_user}', exist_ok=True)
     unique_filename = f"{int(time.time())}_{file.filename}"
@@ -59,7 +59,7 @@ async def api_detect_objects(file: UploadFile = File(...), classes: str = Form("
     return FileResponse(final_image_path)
 
 @app.get("/History")
-async def get_history(current_user: str = Depends(get_current_user)):
+def get_history(current_user: str = Depends(get_current_user)):
     connection = get_db_connection()
     records = None
     try:
@@ -82,7 +82,7 @@ async def get_history(current_user: str = Depends(get_current_user)):
     return results
 
 @app.delete("/History")
-async def clear_history(current_user: str = Depends(get_current_user)):
+def clear_history(current_user: str = Depends(get_current_user)):
     connection = get_db_connection()
     try:
         cursor = connection.cursor()
@@ -100,7 +100,7 @@ async def clear_history(current_user: str = Depends(get_current_user)):
     return {"message": "Histórico limpo com sucesso"}
 
 @app.delete("/deleteUser")
-async def deleteUser(current_user: str = Depends(get_current_user)):
+def deleteUser(current_user: str = Depends(get_current_user)):
     if(current_user == 'admin'):
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
@@ -130,7 +130,7 @@ async def deleteUser(current_user: str = Depends(get_current_user)):
 
 
 @app.get("/statistics")
-async def get_statistics(current_user: str = Depends(get_current_user)):
+def get_statistics(current_user: str = Depends(get_current_user)):
     connection = get_db_connection()
     records = None
     try:   
@@ -163,7 +163,7 @@ async def get_statistics(current_user: str = Depends(get_current_user)):
     }
 
 @app.post('/register', status_code = status.HTTP_201_CREATED)
-async def register_user(username: str = Form(...), password: str = Form(...)):
+def register_user(username: str = Form(...), password: str = Form(...)):
     connection = get_db_connection()
     try:
         cursor = connection.cursor()
@@ -185,7 +185,7 @@ async def register_user(username: str = Form(...), password: str = Form(...)):
     return {"message": "Usuário criado com sucesso!"}
 
 @app.post('/token')
-async def login(form: OAuth2PasswordRequestForm = Depends()):
+def login(form: OAuth2PasswordRequestForm = Depends()):
     connection = get_db_connection()
     hash_password = ''
     try:
